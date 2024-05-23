@@ -280,7 +280,64 @@ void loop() {
    
 }
 
-//EXAMPLE-4 teachmesomething p10 1/4 scanning issue resolved code with arduino. in this we are using the arduino p10 rgb display 3535.
+//EXAMPLE-4 Displaying Text on P10 RGB Using Arduino. this example is taken by this url https://www.dickybmz.com/2020/10/menampilkan-text-di-p10-rgb-menggunakan.html
+#include "RGBmatrixPanel.h"
+#define CLK  8 
+#define OE   9
+#define LAT A3
+#define A   A0
+#define B   A1
+#define C   A2
+
+RGBmatrixPanel matrix(A, B, C, CLK, LAT, OE, false);
+
+void setup() {
+  matrix.begin();
+}
+
+void loop() {
+ // Garis Lingkaran
+  matrix.drawCircle(7, 7, 7, matrix.Color333(0, 0, 7));
+  delay(1000);
+
+  // Lingkaran Full
+  matrix.fillCircle(23, 7, 7, matrix.Color333(7, 0, 7));
+  delay(1000);
+
+  // Layar Off
+  matrix.fillScreen(matrix.Color333(0, 0, 0));
+
+  matrix.setCursor(1, 0); //Kursor (Kolom 1, Baris 0) 
+  matrix.setTextSize(1);   // size 1 == 8 tinggi pixels
+
+
+  matrix.setTextColor(matrix.Color333(7,0,0)); //Pilih Warna (Merah-Hijau-Biru)
+  matrix.print('1');
+  matrix.setTextColor(matrix.Color333(7,4,0));
+  matrix.print('6');
+  matrix.setTextColor(matrix.Color333(7,7,0));
+  matrix.print('x');
+  matrix.setTextColor(matrix.Color333(4,7,0));
+  matrix.print('3');
+  matrix.setTextColor(matrix.Color333(0,7,0));
+  matrix.print('2');
+
+  matrix.setCursor(1, 9);  //Kursor (Kolom 1, Baris 9)
+  matrix.setTextColor(matrix.Color333(0,7,7));
+  matrix.print('*');
+  matrix.setTextColor(matrix.Color333(0,4,7));
+  matrix.print('R');
+  matrix.setTextColor(matrix.Color333(0,0,7));
+  matrix.print('G');
+  matrix.setTextColor(matrix.Color333(4,0,7));
+  matrix.print('B');
+  matrix.setTextColor(matrix.Color333(7,0,4));
+  matrix.print('*');
+
+  delay(3000);
+}
+
+//EXAMPLE-5 teachmesomething p10 1/4 scanning issue resolved code with arduino. in this we are using the arduino p10 rgb display 3535.
 
 #include <RGBmatrixPanel.h>
 //#define CLK  8   // USE THIS ON ARDUINO UNO, ADAFRUIT METRO M0, etc.
