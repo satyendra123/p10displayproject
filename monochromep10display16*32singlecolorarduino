@@ -1,0 +1,566 @@
+//EXAMPLE-1 isme humne arduino ke sath DHT sensor ko connect kiya hai. aur isse jo hume temperature aur humidity ka data milta hai usko maine p10 display par show karaya hai. isme humne DMD3.h library ka use kiya hai. 
+//DMD3.h library bitmap ke liye achha hota hai jaise maine isme arrowanimation karaya hua hai aur jo human padal chalte hai uska bhi animation kiya hua hai
+#include "Wire.h"
+#include "DHT.h"
+#include "BIG7SEGMENT.h"
+#include "DMD3.h"
+#include "DejaVuSans9.h"
+#include "bmz9.h"
+#include "bmz6x7.h"
+
+#define DHTPIN 2  
+#define DHTTYPE DHT11   // DHT 11
+
+DMD3 display (1,1);
+DHT dht(DHTPIN, DHTTYPE);
+
+byte debounce = 100;
+char dmdBuff1[10];
+char dmdBuff2[10];
+int B=0;
+
+void scan()
+{
+    display.refresh();
+}
+
+void setup() {
+    Timer1.initialize(1350);
+    Timer1.attachInterrupt(scan);
+    Timer1.pwm(9,255);
+   // display.setFont(segment);
+
+    dht.begin();
+}
+
+void loop() {
+  display.clear();
+  float h = dht.readHumidity();
+  int t = dht.readTemperature();
+  // Read temperature as Fahrenheit (isFahrenheit = true)
+
+
+    display.setFont(BIG7SEGMENT);
+    sprintf(dmdBuff1, "%.2d", t);
+    sprintf(dmdBuff2, "%.1d", B);
+
+    display.drawText(0, 0, dmdBuff1);
+    display.setFont(bmz9);
+    display.drawText(26, -1, "C");
+    display.drawRect(22,1,24,3,1);
+
+    display.setFont(bmz6x7);
+    display.drawRect(22,13,23,14,1);
+    display.drawText(25, 8 , "5");
+ 
+    delay(100);
+}
+
+//EXAMPLE-2 we have done this using the DMD2.h library. is project me hum apne AC supply ka voltage aur frequency ko display karate hai
+#include "SPI.h"
+#include "DMD2.h"
+#include "fonts/TimesNewRoman10.h"
+#include "fonts/bmz10x16.h"
+
+SoftDMD dmd(2,1);
+int input = 4;
+int high;;
+int low;
+float time_period;
+float periode;
+float frekuensi;
+float inf =50.03;
+void setup() {
+  dmd.setBrightness(255);
+  dmd.begin();
+  pinMode(input,INPUT);
+  Serial.begin(115200);
+}
+
+void loop() {
+   high=pulseIn(input,HIGH);
+   low=pulseIn(input,LOW);
+   time_period=high+low;
+   periode=time_period/800;
+   frekuensi=1000/periode;
+   dmd.selectFont(bmz10x16);
+   dmd.drawString(0,0,String(inf));
+   dmd.selectFont(TimesNewRoman10);
+   dmd.drawString(48,5,"Hz");
+   Serial.println(" Hz");
+   Serial.print(frekuensi);
+   delay(500);
+  
+}
+
+//EXAMPLE-3 is project me humne counter design kiya hai jisme 3 buttons connected hai aur jab hum up button par click karte hai to count ki value increase hoti hai, aur jab hum down button par click karte hai to count ki value decrease hoti hai, aur jab hum reset button par click karte hai to count 0 par reset ho jata hai
+================================== SOURCE CODE ==================================
+#include "DMD3.h"
+#include "bmz6x16.h"
+
+DMD3 display (1,1);
+
+char dmdBuff1[10];
+int Up    = A0;
+int Down  = A1;
+int Reset = A2;
+
+int counter = 0;
+
+void scan()
+{
+    display.refresh();
+}
+
+void setup() {
+    Timer1.initialize(2000);
+    Timer1.attachInterrupt(scan);
+    Timer1.pwm(9,100);
+
+    pinMode(Up,   INPUT_PULLUP);
+    pinMode(Down, INPUT_PULLUP);
+    pinMode(Reset,INPUT_PULLUP);
+    
+    Serial.begin(9600);
+}
+
+void loop() {
+  
+    sprintf(dmdBuff1, "%.4d", counter);
+    display.setFont(bmz6x16);
+    display.drawText(2, 0, dmdBuff1);
+
+    if(counter >= 9999){
+      counter = 0;
+    }
+    if(counter <= 0000){
+      counter = 0;
+    }
+     
+    if(digitalRead(Up)==LOW){
+      delay(200);
+      counter++;
+    }
+    
+   if(digitalRead(Down)==LOW){
+    delay(200);
+      counter--;
+    }
+    
+     if(digitalRead(Reset)==LOW){
+    delay(200);
+      counter=0;
+    }
+}
+
+//EXAMPLE-4 waise humne same is tarah ka ek live project bhi banaya hai loop detector ka use karke jo gadhiyo ko count karta hai parking me. isme humne arduino ka use kiya rs485tottl module ke sath uska code ye hai.
+//ye project kuch aisa hai ki maine esp32 ka use kiya hai loop detector ke sath aur isme rs485 bhi connect hai. entry loop ke NO ko p5 par aur exit loop ke NO ko p4 par connect kiya hai. aur dono loop ke com ko common karke esp32 ke gnd se connect kiya hai.
+// rs485 ke rx pin ko esp32 ke p17 se aur rs485 ke tx pin ko esp32 ke p16 se connect kiya hai. aur arduino ke sath bhi ek rs485tottl ka module laga hai. iske rs485 ka tx pin arduino ke pin 3 se aur rs485 ka rx pin arduino ke pin 2 se connect kiya hai.
+// is project me maine S900800 asci data send karenge agar docklight se to totalSlots ko 900 aur vacantSlots ko 800 set kar lega ye apne NVS memory me. aur agar koi data send nahi krenge docklight se to ye bydefault 999 par rhega totalSlots aur vacantSlots dono.
+// aur jo bhi data hai usko humne AA 01 80 A0 vacantHigh vacantLow 55 is protocol ke through send karenge arduino me. arduino usko receive karega aur data extract karke vacancy calculate karke display me value dikha dega
+
+#include <DMD3.h>
+#include <SoftwareSerial.h>
+#include <SPI.h>
+#include <TimerOne.h>
+#include <font/TimesNewRoman12.h>
+
+const int ledPin = 13;
+DMD3 display;
+
+const byte TX_PIN = 2;
+const byte RX_PIN = 3;
+
+SoftwareSerial Soft_Serial(RX_PIN, TX_PIN);
+
+byte const run1[] PROGMEM = {
+  16, 13,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+};
+
+
+byte const run2[] PROGMEM = {
+  16, 13,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000001,
+  B00000000, B0000001,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+  B00000000, B0000000,
+};
+
+
+byte const run3[] PROGMEM = {
+  16, 13,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000001,
+  B00000000, B00000011,
+  B00000000, B00000011,
+  B00000000, B00000001,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000000,
+};
+
+byte const run4[] PROGMEM = {
+  16, 13,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000001,
+  B00000000, B00000011,
+  B00000000, B00000111,
+  B00000000, B00000111,
+  B00000000, B00000011,
+  B00000000, B00000001,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000000,
+};
+
+byte const run5[] PROGMEM = {
+  16, 13,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000001,
+  B00000000, B00000011,
+  B00000000, B00000111,
+  B00000000, B00001111,
+  B00000000, B00001111,
+  B00000000, B00000111,
+  B00000000, B00000011,
+  B00000000, B00000001,
+  B00000000, B00000000,
+  B00000000, B00000000,
+};
+
+
+byte const run6[] PROGMEM = {
+  16, 13,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000011,
+  B00000000, B00000111,
+  B00000000, B00001111,
+  B00000000, B00011111,
+  B00000000, B00011111,
+  B00000000, B00001111,
+  B00000000, B00000111,
+  B00000000, B00000011,
+  B00000000, B00000000,
+  B00000000, B00000000,
+};
+
+byte const run7[] PROGMEM = {
+  16, 13,
+  B00000000, B00000000,
+  B00000000, B00000000,
+  B00000000, B00000001,
+  B00000000, B00000111,
+  B00000000, B00001111,
+  B00000000, B00011111,
+  B00000000, B00111111,
+  B00000000, B00111111,
+  B00000000, B00011111,
+  B00000000, B00001111,
+  B00000000, B00000111,
+  B00000000, B00000001,
+  B00000000, B00000000,
+};
+
+byte const run8[] PROGMEM = {
+  16, 13,
+  B00000000, B00000000,
+  B00000000, B00000001,
+  B00000000, B00000011,
+  B00000000, B00001111,
+  B00000000, B00011111,
+  B00000000, B00111111,
+  B00000000, B01111111,
+  B00000000, B01111111,
+  B00000000, B00111111,
+  B00000000, B00011111,
+  B00000000, B00001111,
+  B00000000, B00000011,
+  B00000000, B00000001,
+};
+
+
+byte const run9[] PROGMEM = {
+  16, 13,
+  B00000000, B00000001,
+  B00000000, B00000011,
+  B00000000, B00000111,
+  B00000000, B00011111,
+  B00000000, B00111111,
+  B00000000, B01111111,
+  B00000000, B11111111,
+  B00000000, B11111111,
+  B00000000, B01111111,
+  B00000000, B00111111,
+  B00000000, B00011111,
+  B00000000, B00000111,
+  B00000000, B00000011,
+};
+
+
+byte const run10[] PROGMEM = {
+  16, 13,
+  B00000000, B00000100,
+  B00000000, B00001100,
+  B00000000, B00011100,
+  B00000000, B00111100,
+  B00000000, B01111111,
+  B00000000, B11111111,
+  B00000001, B11111111,
+  B00000001, B11111111,
+  B00000000, B11111100,
+  B00000000, B01111100,
+  B00000000, B00111100,
+  B00000000, B00011100,
+  B00000000, B00001100,
+};
+
+byte const run11[] PROGMEM = {
+  16, 13,
+  B00000000, B00001000,
+  B00000000, B00011000,
+  B00000000, B00111000,
+  B00000000, B01111000,
+  B00000000, B11111111,
+  B00000001, B11111111,
+  B00000011, B11111111,
+  B00000011, B11111111,
+  B00000001, B11111000,
+  B00000000, B11111000,
+  B00000000, B01111000,
+  B00000000, B00111000,
+  B00000000, B00011000,
+};
+
+byte const run12[] PROGMEM = {
+  16, 13,
+  B00000000, B00010000,
+  B00000000, B00110000,
+  B00000000, B01110000,
+  B00000000, B11110000,
+  B00000001, B11111111,
+  B00000011, B11111111,
+  B00000111, B11111111,
+  B00000111, B11111111,
+  B00000011, B11110000,
+  B00000001, B11110000,
+  B00000000, B11110000,
+  B00000000, B01110000,
+  B00000000, B00110000,
+};
+
+byte const run13[] PROGMEM = {
+  16, 13,
+  B00000000, B00100000,
+  B00000000, B01100000,
+  B00000000, B11100000,
+  B00000001, B11100000,
+  B00000011, B11111111,
+  B00000111, B11111111,
+  B00001111, B11111111,
+  B00001111, B11111111,
+  B00000111, B11100000,
+  B00000011, B11100000,
+  B00000001, B11100000,
+  B00000000, B11100000,
+  B00000000, B01100000,
+};
+
+byte const run14[] PROGMEM = {
+  16, 13,
+  B00000000, B01000000,
+  B00000000, B11000000,
+  B00000001, B11000000,
+  B00000011, B11000000,
+  B00000111, B11111111,
+  B00001111, B11111111,
+  B00011111, B11111111,
+  B00011111, B11111111,
+  B00001111, B11000000,
+  B00000111, B11000000,
+  B00000011, B11000000,
+  B00000001, B11000000,
+  B00000000, B11000000,
+};
+
+byte const run15[] PROGMEM = {
+  16, 13,
+  B00000000, B10000000,
+  B00000001, B10000000,
+  B00000011, B10000000,
+  B00000111, B10000000,
+  B00001111, B11111111,
+  B00011111, B11111111,
+  B00111111, B11111111,
+  B00111111, B11111111,
+  B00011111, B10000000,
+  B00001111, B10000000,
+  B00000111, B10000000,
+  B00000011, B10000000,
+  B00000001, B10000000,
+};
+
+byte const run16[] PROGMEM = {
+  16, 13,
+  B00000001, B00000000,
+  B00000011, B00000000,
+  B00000111, B00000000,
+  B00001111, B00000000,
+  B00011111, B11111111,
+  B00111111, B11111111,
+  B01111111, B11111111,
+  B01111111, B11111111,
+  B00111111, B00000000,
+  B00011111, B00000000,
+  B00001111, B00000000,
+  B00000111, B00000000,
+  B00000011, B00000000,
+};
+Bitmap::ProgMem frames[] = {
+    run1,
+    run2,
+    run3,
+    run4,
+    run5,
+    run6,
+    run7,
+    run8,
+    run9,
+    run10,
+    run11,
+    run12,
+    run13,
+    run14,
+    run15,
+    run16,
+};
+
+#define NUM_FRAMES (sizeof(frames) / sizeof(frames[0]))
+unsigned int frame = 0;
+
+#define ADVANCE_MS (1000 / NUM_FRAMES)
+
+unsigned long lastFrameChange = 0;
+int currentVacancy = -1; // Keep track of the current vacancy value
+
+void scan() {
+    display.refresh();
+}
+
+void setup() {
+    Serial.begin(9600);
+    Serial.println("Start...");
+    Soft_Serial.begin(9600);
+    Timer1.initialize(2000);
+    Timer1.attachInterrupt(scan);
+    Timer1.pwm(9, 255);
+}
+
+void loop() {
+    unsigned long currentMillis = millis();
+
+    // Continuously display the arrow
+    if (currentMillis - lastFrameChange >= ADVANCE_MS) {
+        show_arrow(frames[frame]);
+        frame = (frame + 1) % NUM_FRAMES;
+        lastFrameChange = currentMillis;
+    }
+
+    // Check for serial data
+    if (Soft_Serial.available() > 0) {
+        Serial.println("Data available.");
+        process_serial_data();
+    }
+}
+
+void process_serial_data() {
+    char buffer[7];
+    int bytesRead = Soft_Serial.readBytes(buffer, sizeof(buffer));
+
+    Serial.print("Bytes read: ");
+    Serial.println(bytesRead);
+
+    if (bytesRead == 7) {
+        Serial.print("Received data: ");
+        for (int i = 0; i < bytesRead; i++) {
+            Serial.print((unsigned char)buffer[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+
+        if ((unsigned char)buffer[0] == 0xAA && (unsigned char)buffer[1] == 0x01 && 
+            (unsigned char)buffer[2] == 0x80 && (unsigned char)buffer[3] == 0xA0 && 
+            (unsigned char)buffer[6] == 0x55) {
+            
+            int vacancyHigh = (unsigned char)buffer[4];
+            int vacancyLow = (unsigned char)buffer[5];
+            int vacancy = (vacancyHigh << 8) | vacancyLow;
+            Serial.print("Vacancy: ");
+            Serial.println(vacancy, HEX);
+
+            // Update vacancy display if changed and if vacancy is non-negative
+            if (vacancy >= 0 && vacancy != currentVacancy) {
+                currentVacancy = vacancy;
+                show_text(vacancy);
+            }
+        } else {
+            Serial.println("Invalid data format.");
+        }
+    } else {
+        Serial.println("Invalid data length.");
+    }
+}
+
+void show_text(int vacancy) {
+    // Clear the entire display before updating
+    display.clear();
+    display.setFont(TimesNewRoman12); // Use a smaller font
+
+    char vacancyText[4];
+    sprintf(vacancyText, "%d", vacancy);
+
+    int x = (display.width() - display.textWidth(vacancyText)) / 2; // Center the text horizontally
+    display.drawText(x - 3, 0, vacancyText); // Adjust the position for text
+    display.refresh(); // Refresh the display after drawing text
+}
+
+void show_arrow(const byte* arrow) {
+    // Clear the specific area for the arrow
+    int x = (display.width() - 32) / 2; // Center the bitmap horizontally
+    display.drawBitmap(x + 24, 2, arrow);
+    display.refresh();
+}
+
