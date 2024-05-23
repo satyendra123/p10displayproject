@@ -81,7 +81,7 @@ void loop()
 }
 
 #EXAMPLE-2 Menampilkan text Di P5 Full Color RGB Menggunakan ESP-32  In this experiment I will make a tutorial on how to access the P5 RGB panel using the ESP-32 . In this experiment I used a P5 panel with Scan 1/16S and Nodemcu ESP-32. The first stage in this tutorial is to display the text in the P5 panel
-
+// basically p10 RGB display p4 ya p5 me kewal do library hi use kiya jata hai ek to ESP32-RGB64x32MatrixPanel-I2S-DMA.h library aur dusra Pxmatrix library
 #include "WiFi.h"
 #include "ESP32-RGB64x32MatrixPanel-I2S-DMA.h"
 #include "Adafruit_GFX.h"
