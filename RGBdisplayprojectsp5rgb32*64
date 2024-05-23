@@ -1,0 +1,281 @@
+#EXAMPLE-1 Membuat Digital Clock NTP Menggunakan ESP-32 Wifi dengan Display Panel P5 RGB. this is the project link. you can download the library from the below link
+#https://www.dickybmz.com/2021/01/membuat-digital-clock-ntp-menggunakan.html
+
+#include "WiFi.h"
+#include "RGBmatrixPanel.h"
+#include "Adafruit_GFX.h"
+#include "Fonts/FreeSansBold9pt7b.h"
+#include "Fonts/BigNumber.h"
+uint8_t rgbpins[] = { 19, 13, 18, 5, 12, 17 };
+RGBmatrixPanel matrix(16, 14, 4, 27, 2, 26, 15, false, 64, rgbpins);
+
+char ssid[] = "xxxxxxxx"; // Nama Wifi Anda
+char pass[] = "xxxxxxxx"; // Password Wifi Anda
+
+#define TZ (+7*60*60) //Timezone
+
+void setup() {
+  Serial.begin(115200);
+
+  Serial.print("Attempting to connect to Network named: ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, pass);
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(1000);
+  }
+  Serial.println("");
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
+
+  configTime(TZ, 0, "ntp.nict.jp", "ntp.jst.mfeed.ad.jp"); 
+
+  matrix.begin();                      
+}
+
+void loop()
+{
+  if (WiFi.status() != WL_CONNECTED)
+    ESP.restart();
+
+  time_t t;
+  static time_t last_t;
+  struct tm *tm;
+  static const char* const wd[7] = {"Minggu","Senin","Selasa","Rabu","Kamis","Jum'at","Sabtu"};
+
+  t = time(NULL);
+  if (last_t == t) return;
+  last_t = t;
+  tm = localtime(&t);
+  matrix.fillScreen(0);
+
+  matrix.setTextColor(matrix.Color333(15, 15, 0));
+  matrix.setTextSize(2);
+  matrix.setCursor(1, 0);
+  //matrix.printf("00");
+  matrix.printf("%02d", tm->tm_hour);
+  matrix.drawCircle(25, 3, 1, matrix.Color333(15, 0, 0));
+  matrix.drawCircle(25, 10, 1, matrix.Color333(15, 0, 0));
+  matrix.drawCircle(25, 3, 0, matrix.Color333(0, 15, 0));
+  matrix.drawCircle(25, 10, 0, matrix.Color333(0, 15, 0));
+  matrix.setCursor(28, 0);
+  //matrix.printf("00");
+  matrix.printf("%02d",  tm->tm_min);
+  matrix.setTextColor(matrix.Color333(0, 15, 15));
+  matrix.setTextSize(1);
+  matrix.setCursor(52, 7);
+  matrix.printf("%02d", tm->tm_sec);
+
+  matrix.setCursor(17, 16);
+  matrix.setTextColor(tm->tm_wday == 0 ? matrix.Color333(15, 0, 0) :
+                      tm->tm_wday == 6 ? matrix.Color333(0, 15, 15) :
+                                         matrix.Color333(15, 0, 0));
+  matrix.printf("%s", wd[tm->tm_wday]);
+
+  matrix.setCursor(3, 24);
+  matrix.setTextColor(matrix.Color333(15, 0, 15));
+  matrix.printf("%02d-%02d-%04d-n", tm->tm_mday, tm->tm_mon+1, tm->tm_year+1900);
+
+}
+
+#EXAMPLE-2 Menampilkan text Di P5 Full Color RGB Menggunakan ESP-32  In this experiment I will make a tutorial on how to access the P5 RGB panel using the ESP-32 . In this experiment I used a P5 panel with Scan 1/16S and Nodemcu ESP-32. The first stage in this tutorial is to display the text in the P5 panel
+
+#include "WiFi.h"
+#include "ESP32-RGB64x32MatrixPanel-I2S-DMA.h"
+#include "Adafruit_GFX.h"
+#include "Fonts/Font5x7.h"
+RGB64x32MatrixPanel_I2S_DMA dmd;
+
+char ssid[] = "xxxxxxxx"; // Nama Wifi Anda
+char pass[] = "xxxxxxxx"; // Password Wifi Anda
+#define TZ (+7*60*60) //Timezone
+
+void setup() {
+  Serial.begin(115200);
+
+  Serial.print("Attempting to connect to Network named: ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, pass);
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(1000);
+  }
+  Serial.println("");
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
+
+  configTime(TZ, 0, "ntp.nict.jp", "ntp.jst.mfeed.ad.jp"); 
+
+  dmd.begin();
+}
+
+void loop() {
+  if (WiFi.status() != WL_CONNECTED)
+    ESP.restart();
+
+  time_t t;
+  static time_t last_t;
+  struct tm *tm;
+  static const char* const wd[7] = {"Minggu","Senin","Selasa","Rabu","Kamis","Jum'at","Sabtu"};
+
+  t = time(NULL);
+  if (last_t == t) return;
+  last_t = t;
+  tm = localtime(&t);
+  dmd.clearScreen();
+  int jam,menit,detik;
+  jam = ("%02d", tm->tm_hour);
+  menit = ("%02d", tm->tm_min);
+  detik = ("%02d", tm->tm_sec);
+  dmd.setTextSize(2);    
+  dmd.setTextWrap(false);
+  dmd.setTextColor(dmd.color444(0,15,15));
+  dmd.setCursor(0, 0);
+  dmd.print(jam);
+  dmd.setTextColor(dmd.color444(15,0,0));
+  dmd.setCursor(20, 0);
+  dmd.print(":");
+  dmd.setTextColor(dmd.color444(0,15,15));
+  dmd.setCursor(28, 0);
+  dmd.print(menit);
+  dmd.setTextColor(dmd.color444(0,15,15));
+  dmd.setCursor(48, 0);
+  dmd.setTextColor(dmd.color444(15,0,0));
+  dmd.print(":");
+  dmd.setTextColor(dmd.color444(0,15,15));
+  dmd.setCursor(56, 0);
+  dmd.print(detik);
+  
+  dmd.setTextSize(1);    
+  dmd.setCursor(82, 0);
+  dmd.setTextColor(dmd.color444(15,15,0));
+  dmd.print("DOT MATRIX + ESP32");
+  dmd.setCursor(87, 8);
+  dmd.setTextColor(dmd.color444(0,15,0));
+  dmd.print("www.dickybmz.com");
+
+  dmd.setTextSize(2);    
+  dmd.setCursor(18, 18);
+  dmd.setTextColor(dmd.color444(15,4,15));
+  dmd.print("P5");
+
+  dmd.setCursor(54, 18);
+  dmd.setTextColor(dmd.color444(15,0,0));
+  dmd.print("R");
+
+  dmd.setCursor(66, 18);
+  dmd.setTextColor(dmd.color444(0,15,0));
+  dmd.print("G");
+
+  dmd.setCursor(78, 18);
+  dmd.setTextColor(dmd.color444(0,0,15));
+  dmd.print("B");
+
+  dmd.setCursor(102, 18);
+  dmd.setTextColor(dmd.color444(15,0,0));
+  dmd.print("3");
+  dmd.setCursor(114, 18);
+  dmd.setTextColor(dmd.color444(15,10,4));
+  dmd.print("2");
+  dmd.setCursor(126, 18);
+  dmd.setTextColor(dmd.color444(15,15,0));
+  dmd.print("x");
+  dmd.setCursor(136, 18);
+  dmd.setTextColor(dmd.color444(0,15,0));
+  dmd.print("1");
+  dmd.setCursor(148, 18);
+  dmd.setTextColor(dmd.color444(0,15,10));
+  dmd.print("9");
+  dmd.setCursor(160, 18);
+  dmd.setTextColor(dmd.color444(0,15,15));
+  dmd.print("2");
+  dmd.showDMABuffer();   
+
+}
+
+#EXAMPLE-3 Belajar Arduino P10 RGB HUB75 Dengan DMD Shield Uno. in this i have used the RGB p10 display with arduino. 
+
+#include "RGBmatrixPanel.h"
+#define CLK  8   // USE THIS ON ARDUINO UNO, ADAFRUIT METRO M0, etc.
+#define OE   9
+#define LAT A3
+#define A   A0
+#define B   A1
+#define C   A2
+
+RGBmatrixPanel matrix(A, B, C, CLK, LAT, OE, false);
+
+void setup() {
+  matrix.begin();
+}
+
+void loop() {
+      //Lantai
+      matrix.drawLine(0, 15, 32, 15, matrix.Color333(1, 1, 1));
+
+      //Tiang Kiri
+      matrix.fillRect(1, 7, 3, 8, matrix.Color333(0, 1, 1));
+      matrix.fillRect(1, 1, 3, 2, matrix.Color333(1, 1, 0));
+   
+      matrix.drawLine(0, 6, 4, 6, matrix.Color333(1, 1, 1));
+      matrix.drawLine(1, 5, 3, 5, matrix.Color333(1, 1, 1));
+      matrix.drawLine(2, 4, 2, 4, matrix.Color333(1, 1, 1));
+      matrix.drawLine(2, 3, 2, 3, matrix.Color333(1, 1, 1));
+      matrix.drawLine(2, 0, 2, 0, matrix.Color333(1, 1, 1));
+
+      //Tiang Kanan
+      matrix.fillRect(28, 7, 3, 8, matrix.Color333(0, 1, 1));
+   
+   
+      matrix.drawLine(27, 6, 31, 6, matrix.Color333(1, 1, 1));
+      matrix.drawLine(29, 5, 29, 5, matrix.Color333(1, 1, 1));
+      matrix.drawLine(29, 4, 30, 4, matrix.Color333(1, 1, 0));
+      matrix.drawLine(31, 1, 31, 3, matrix.Color333(1, 1, 0));
+      matrix.drawLine(28, 0, 30, 0, matrix.Color333(1, 1, 0));
+      matrix.drawLine(27, 1, 27, 1, matrix.Color333(1, 1, 0));
+      matrix.drawLine(29, 2, 29, 2, matrix.Color333(1, 0, 0));
+
+      //Kubah
+      matrix.drawLine(15, 0, 16, 0 , matrix.Color333(1, 0, 1));
+      matrix.drawLine(14, 1, 17, 1 , matrix.Color333(1, 0, 1));
+      matrix.drawLine(13, 2, 18, 2 , matrix.Color333(1, 0, 1));
+      matrix.drawLine(12, 3, 19, 3 , matrix.Color333(1, 0, 1));
+      matrix.drawLine(11, 4, 20, 4 , matrix.Color333(1, 0, 1));
+      matrix.drawLine(11, 5, 20, 5 , matrix.Color333(1, 0, 1));
+      matrix.drawLine(12, 6, 19, 6 , matrix.Color333(1, 0, 1));
+      matrix.drawLine(13, 7, 18, 7 , matrix.Color333(1, 0, 1));
+      matrix.drawLine(6, 8, 25, 8 , matrix.Color333(1, 0, 1));
+      
+
+      //Tiang
+      matrix.drawLine(5, 9, 26, 9 , matrix.Color333(1, 0, 0));
+      matrix.drawLine(5, 10, 5, 14 , matrix.Color333(1, 0, 0));
+      
+      matrix.drawLine(6, 10, 6, 14 , matrix.Color333(0, 1, 0));
+      matrix.drawLine(7, 10, 7, 10 , matrix.Color333(0, 1, 0));
+      matrix.drawLine(9, 10, 9, 10 , matrix.Color333(0, 1, 0));
+      matrix.drawLine(10, 10, 10, 14 , matrix.Color333(0, 1, 0));
+      
+      matrix.drawLine(11, 10, 11, 14 , matrix.Color333(1, 0, 0));
+      matrix.drawLine(12, 10, 12, 14 , matrix.Color333(1, 0, 0));
+      
+      matrix.drawLine(13, 10, 13, 14 , matrix.Color333(0, 1, 0));
+      matrix.drawLine(14, 10, 14, 10 , matrix.Color333(0, 1, 0));
+      matrix.drawLine(17, 10, 17, 10 , matrix.Color333(0, 1, 0));
+      matrix.drawLine(18, 10, 18, 14 , matrix.Color333(0, 1, 0));
+
+      matrix.drawLine(19, 10, 19, 14 , matrix.Color333(1, 0, 0));
+      matrix.drawLine(20, 10, 20, 14 , matrix.Color333(1, 0, 0));
+
+      matrix.drawLine(21, 10, 21, 14 , matrix.Color333(0, 1, 0));
+      matrix.drawLine(22, 10, 22, 10 , matrix.Color333(0, 1, 0));
+      matrix.drawLine(24, 10, 24, 10 , matrix.Color333(0, 1, 0));
+      matrix.drawLine(25, 10, 25, 14 , matrix.Color333(0, 1, 0));
+       
+      matrix.drawLine(26, 10, 26, 14 , matrix.Color333(1, 0, 0));
+   
+}
